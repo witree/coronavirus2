@@ -423,6 +423,10 @@ function initlocation () {
 sprites.onOverlap(SpriteKind.Enemy, SpriteKind.obstacle, function (sprite, otherSprite) {
     doknock(sprite)
 })
+sprites.onOverlap(SpriteKind.Enemy, SpriteKind.Projectile, function (sprite, otherSprite) {
+    music.baDing.play()
+    sprite.destroy(effects.fire, 500)
+})
 function doSomething () {
     animation.setAction(hero, ActionKind.runright)
 }
@@ -433,15 +437,91 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
     if (direction == 1) {
         music.playTone(698, music.beat(BeatFraction.Eighth))
         animation.setAction(hero, ActionKind.runleftattack)
+        projectile = sprites.createProjectileFromSprite(img`
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . b . . . . . . . . . . 
+. . . . b 1 . . . . . . . . . . 
+. . . . 1 . . . . . . . . . . . 
+. . . b 1 . . . . . . . . . . . 
+. . . b 1 . . . . . . . . . . . 
+. . . b 1 . . . . . . . . . . . 
+. . . b b . . . . . . . . . . . 
+. . . . 1 . . . . . . . . . . . 
+. . . . b 1 . . . . . . . . . . 
+. . . . . b 1 . . . . . . . . . 
+. . . . . . b . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+`, hero, -80, 0)
+        projectile.setKind(SpriteKind.Projectile)
     } else if (direction == 2) {
         music.playTone(698, music.beat(BeatFraction.Eighth))
         animation.setAction(hero, ActionKind.runrigthattack)
+        projectile = sprites.createProjectileFromSprite(img`
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . b . . . . . 
+. . . . . . . . . . 1 b . . . . 
+. . . . . . . . . . . 1 . . . . 
+. . . . . . . . . . . 1 b . . . 
+. . . . . . . . . . . 1 b . . . 
+. . . . . . . . . . . 1 b . . . 
+. . . . . . . . . . . 1 b . . . 
+. . . . . . . . . . . 1 . . . . 
+. . . . . . . . . . 1 b . . . . 
+. . . . . . . . . 1 b . . . . . 
+. . . . . . . . . b . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+`, hero, 80, 0)
+        projectile.setKind(SpriteKind.Projectile)
     } else if (direction == 3) {
         music.playTone(698, music.beat(BeatFraction.Eighth))
         animation.setAction(hero, ActionKind.runupattack)
+        projectile = sprites.createProjectileFromSprite(img`
+. . . . . . . . . . . . . . . . 
+. . . . . . . b b . . . . . . . 
+. . . . . b 1 1 1 1 b . . . . . 
+. . . . . b . . . 1 b . . . . . 
+. . . . b 1 . . . . 1 b . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+`, hero, 0, -80)
+        projectile.setKind(SpriteKind.Projectile)
     } else if (direction == 4) {
         music.playTone(698, music.beat(BeatFraction.Eighth))
         animation.setAction(hero, ActionKind.rundownattack)
+        projectile = sprites.createProjectileFromSprite(img`
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . 1 . . . . . . . . . . . 
+. . . . b 1 . . . . . b . . . . 
+. . . . b 1 . . . . 1 b . . . . 
+. . . . . b 1 1 1 1 b . . . . . 
+. . . . . . . b b . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+`, hero, 0, 80)
+        projectile.setKind(SpriteKind.Projectile)
     }
 })
 sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function (sprite, otherSprite) {
@@ -449,22 +529,22 @@ sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function (sprite, otherSp
         if (direction == 1) {
             if (sprite.x - otherSprite.x >= 0) {
                 music.baDing.play()
-                otherSprite.destroy(effects.fire, 1000)
+                otherSprite.destroy(effects.fire, 500)
             }
         } else if (direction == 2) {
             if (sprite.x - otherSprite.x <= 0) {
                 music.baDing.play()
-                otherSprite.destroy(effects.fire, 1000)
+                otherSprite.destroy(effects.fire, 500)
             }
         } else if (direction == 3) {
             if (sprite.y - otherSprite.y >= 0) {
                 music.baDing.play()
-                otherSprite.destroy(effects.fire, 1000)
+                otherSprite.destroy(effects.fire, 500)
             }
         } else if (direction == 4) {
             if (sprite.y - otherSprite.y <= 0) {
                 music.baDing.play()
-                otherSprite.destroy(effects.fire, 1000)
+                otherSprite.destroy(effects.fire, 500)
             }
         }
     } else {
@@ -1386,6 +1466,7 @@ let heroleftattack: animation.Animation = null
 let obstacle2: Sprite = null
 let desk: Sprite = null
 let bed: Sprite = null
+let projectile: Sprite = null
 let pets: Image[] = []
 let xpet: Sprite = null
 let persons: Image[] = []
@@ -1403,20 +1484,20 @@ let playersick = 0
 let direction = 0
 let hero: Sprite = null
 tiles.setTilemap(tiles.createTilemap(
-            hex`20002000370338383838383838383838383838383838383838383838383838383838383837032019191919191920191919191920191919191919191920191919191919383703201919191919192019191919192019191919191919192019191919191938370320191919191919201919191919201919191919191919201919191919193837032020201e1e2020201e2020201e2020201e1e20202020201e24201919193837090505050605050505060505050a050505060605050505050508202020203837032020202020202020202020200320202020202020202020200320191919383703201919191919191919191920032019191919201919191920032019191938370320191919191919191919192003331919191920191919193303201919193837032019191919191919191919200933191919192019191919330820191919383703201919191919191919191920032019191919201919191920093219191938370320202020201e1e202020202003202020202020202020202009331919193837090505050505060605050505050c0505050505050505050505082019191938370314141414141414141414141403262626262626262626262603201919193837031417171717171717171717140329191919191919191919280320191919383703141717171717171717171714032919192c2c2c2c1919192809331919193837031417171717171717171717140329191919191919191919280932191919383703141717171212121217171714032919191919191919191928032019191938370314171717171717171717171403291919191919191919192803201919193837031414141414242414141414140327272727242b242727272703201919193837090505050505060605050505050c05050505060a060505050508201919193837032e2e2e2e2e2e2e2e2e2e2e2e03313131313124313131313103331919193837032e1a1a1a1a1a1a1a1a1a1a2e0331451a1a1a1a1a1a1a163109331919193837032e1a1a1a1a1a1a1a1a1a1a2e09321a1a1a1a15441a1a1a3303201919193837032e1a1a1a1a1a1a1a1a1a1a2e03331a1a1a1a43421a1a1a3308201919193837032e1a1a1a1a1a1a1a1a1a1a2e0331461a1a1a1a1a1a1a433103201919193837032e2e2e2e2e1e1e2e2e2e2e2e0331313131311e3131313131032020202038050605050a0a0a06060a050a0a0a060a0a0a0a0a060a050a0a0a060a0a05050538393a3a3a3a3a3a3a3a3a3a3a01013a3a3a3a3a3a3a3a3a01013a3a3a3a3e38383b010101010140404040010101010101010101010101010101010101013f38383c3d3d3d3d3d3d3d3d3d3d3d3d3d0101013d3d3d3d3d3d3d0101013d3d3d383838383838383838383838383838383838383838383838383838383838383838`,
+            hex`20002000370338383838383838383838383838383838383838383838383838383838383837032019191919191920191919191920191919191919191920191919191919383703201919191919192019191919192019191919191919192019191919191938370320191919191919201919191919201919191919191919201919191919193837090720201e1e2020201e242020202020201e1e20202020201e24201919193837090605050605050505060505050a0a0505060605050505050508202020203837032020202020202020202020200948202020202020202020200320191919383703201919191919191919191920032019191919201919191920032019191938370320191919191919191919192003331919191920191919193303201919193837032019191919191919191919200933191919192019191919330820191919383703201919191919191919191920032019191919201919191920093219191938370907202020201e1e202020202009072020202020202020204708331919193837090605050505060605050505050c0605050505050505050506082019191938370314141414141414141414141403262626262626262626262603201919193837031417171717171717171717140329191919191919191919280320191919383703141717171717171717171714032919192c2c2c2c1919192809331919193837031417171717171717171717140329191919191919191919280932191919383703141717171212121217171714032919191919191919191928032019191938370314171717171717171717171403291919191919191919192803201919193837031414141414242414141414140327272727242b242727272703201919193837090a0505050506060505050a050c05050505060a060505050a0820191919383709482e2e2e2e2e2e2e2e2e030c03313131313124313131310303331919193837032e1a1a1a1a1a1a1a1a2e09050831451a1a1a1a1a1a16310309331919193837032e1a1a1a1a1a1a1a1a2e033809321a1a1a15441a1a1a330803201919193837032e1a1a1a1a1a1a1a1a2e033803331a1a1a43421a1a1a330803201919193837032e1a1a1a1a1a1a1a1a2e09050831461a1a1a1a1a1a4331030320191919383709072e2e2e2e1e1e2e2e2e030c0331313131311e31313131030320202020380506060505050506060505050605060505050505060505050506060505050505382d2d2d3a3a3a3a3a3a3a3a2d2d2d2d3a3a3a3a3a3a3a3a01013a3a2d2d2d38383b010101010140404040010101010101010101010101010101010101013f38383c3d3d3d3d3d3d3d3d3d3d3d3d3d0101013d3d3d3d3d3d3d0101013d3d3d383838383838383838383838383838383838383838383838383838383838383838`,
             img`
 2 . 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
 2 . 2 . . . . . . 2 . . . . . 2 . . . . . . . . 2 . . . . . . 2 
 2 . 2 . . . . . . 2 . . . . . 2 . . . . . . . . 2 . . . . . . 2 
 2 . 2 . . . . . . 2 . . . . . 2 . . . . . . . . 2 . . . . . . 2 
-2 . 2 2 2 . . 2 2 2 . 2 2 2 . 2 2 2 . . 2 2 2 2 2 . . 2 . . . 2 
+2 . . 2 2 . . 2 2 2 . . 2 2 2 2 2 2 . . 2 2 2 2 2 . . 2 . . . 2 
 2 . . . . . . . . . . . . . . . . . . . . . . . . . . 2 2 2 2 2 
-2 . 2 2 2 2 2 2 2 2 2 2 2 2 . 2 2 2 2 2 2 2 2 2 2 2 . 2 . . . 2 
+2 . 2 2 2 2 2 2 2 2 2 2 2 2 . . 2 2 2 2 2 2 2 2 2 2 . 2 . . . 2 
 2 . 2 . . . . . . . . . . 2 . 2 . . . . 2 . . . . 2 . 2 . . . 2 
 2 . 2 . . . . . . . . . . 2 . . . . . . 2 . . . . . . 2 . . . 2 
 2 . 2 . . . . . . . . . . 2 . . . . . . 2 . . . . . . 2 . . . 2 
 2 . 2 . . . . . . . . . . 2 . 2 . . . . 2 . . . . 2 . . . . . 2 
-2 . 2 2 2 2 2 . . 2 2 2 2 2 . 2 2 2 2 2 2 2 2 2 2 2 . . . . . 2 
+2 . . 2 2 2 2 . . 2 2 2 2 2 . . 2 2 2 2 2 2 2 2 2 . . . . . . 2 
 2 . . . . . . . . . . . . . . . . . . . . . . . . . . 2 . . . 2 
 2 . 2 2 2 2 2 2 2 2 2 2 2 2 . 2 2 2 2 2 2 2 2 2 2 2 . 2 . . . 2 
 2 . 2 . . . . . . . . . . 2 . 2 . . . . . . . . . 2 . 2 . . . 2 
@@ -1426,19 +1507,19 @@ tiles.setTilemap(tiles.createTilemap(
 2 . 2 . . . . . . . . . . 2 . 2 . . . . . . . . . 2 . 2 . . . 2 
 2 . 2 2 2 2 2 . . 2 2 2 2 2 . 2 2 2 2 . . . 2 2 2 2 . 2 . . . 2 
 2 . . . . . . . . . . . . . . . . . . . . . . . . . . 2 . . . 2 
-2 . 2 2 2 2 2 2 2 2 2 2 2 2 . 2 2 2 2 2 . 2 2 2 2 2 . . . . . 2 
-2 . 2 . . . . . . . . . . 2 . 2 . . . . . . . . . 2 . . . . . 2 
-2 . 2 . . . . . . . . . . 2 . . . . . . 2 2 . . . . . 2 . . . 2 
-2 . 2 . . . . . . . . . . 2 . . . . . . 2 2 . . . . . 2 . . . 2 
-2 . 2 . . . . . . . . . . 2 . 2 . . . . . . . . . 2 . 2 . . . 2 
-2 . 2 2 2 2 2 . . 2 2 2 2 2 . 2 2 2 2 2 . 2 2 2 2 2 . 2 2 2 2 2 
+2 . . 2 2 2 2 2 2 2 2 2 . . . 2 2 2 2 2 . 2 2 2 2 . . . . . . 2 
+2 . 2 . . . . . . . . 2 . . . 2 . . . . . . . . 2 . . . . . . 2 
+2 . 2 . . . . . . . . 2 . 2 . . . . . 2 2 . . . . . . 2 . . . 2 
+2 . 2 . . . . . . . . 2 . 2 . . . . . 2 2 . . . . . . 2 . . . 2 
+2 . 2 . . . . . . . . 2 . . . 2 . . . . . . . . 2 . . 2 . . . 2 
+2 . . 2 2 2 2 . . 2 2 2 . . . 2 2 2 2 2 . 2 2 2 2 . . 2 2 2 2 2 
 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
-. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 2 
+2 2 2 2 . . . . . . . . 2 2 2 2 . . . . . . . . . . . . 2 2 2 2 
 2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 2 
 2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 2 
 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
 `,
-            [myTiles.tile0,sprites.castle.tileGrass2,sprites.builtin.field0,sprites.vehicle.roadVertical,sprites.vehicle.roadTurn3,sprites.vehicle.roadHorizontal,sprites.vehicle.roadIntersection1,sprites.vehicle.roadTurn2,sprites.vehicle.roadIntersection4,sprites.vehicle.roadIntersection2,sprites.vehicle.roadIntersection3,sprites.dungeon.hazardSpike,sprites.dungeon.buttonTealDepressed,sprites.builtin.field1,sprites.castle.shrub,sprites.castle.rock1,sprites.castle.rock0,sprites.castle.rock2,sprites.castle.saplingPine,sprites.builtin.crowd0,sprites.builtin.brick,sprites.dungeon.doorLockedWest,sprites.dungeon.doorOpenWest,myTiles.tile1,myTiles.tile2,myTiles.tile3,myTiles.tile4,myTiles.tile5,sprites.dungeon.floorDark0,sprites.dungeon.floorLight4,sprites.dungeon.stairNorth,sprites.dungeon.purpleOuterWest2,sprites.dungeon.floorLight0,sprites.dungeon.chestClosed,sprites.dungeon.collectibleInsignia,sprites.builtin.forestTiles21,sprites.dungeon.stairSouth,sprites.castle.saplingOak,sprites.dungeon.greenOuterNorth2,sprites.dungeon.greenOuterSouth2,sprites.dungeon.greenOuterEast2,sprites.dungeon.greenOuterWest2,sprites.dungeon.stairLadder,sprites.dungeon.purpleOuterNorth2,sprites.castle.tileDarkGrass2,sprites.builtin.forestTiles0,sprites.dungeon.floorDarkDiamond,sprites.dungeon.floorLight3,sprites.dungeon.floorLightMoss,sprites.dungeon.floorLight5,sprites.dungeon.stairEast,sprites.dungeon.stairWest,sprites.dungeon.stairLarge,sprites.builtin.forestTiles22,sprites.builtin.forestTiles3,sprites.builtin.forestTiles20,sprites.builtin.forestTiles4,sprites.castle.tilePath1,sprites.castle.tilePath2,sprites.castle.tilePath4,sprites.castle.tilePath7,sprites.castle.tilePath8,sprites.castle.tilePath3,sprites.castle.tilePath6,sprites.castle.tilePath5,sprites.builtin.crowd2,sprites.dungeon.doorClosedEast,sprites.dungeon.doorClosedWest,sprites.dungeon.doorLockedEast,sprites.dungeon.doorClosedSouth,sprites.dungeon.doorOpenNorth],
+            [myTiles.tile0,sprites.castle.tileGrass2,sprites.builtin.field0,sprites.vehicle.roadVertical,sprites.vehicle.roadTurn3,sprites.vehicle.roadHorizontal,sprites.vehicle.roadIntersection1,sprites.vehicle.roadTurn2,sprites.vehicle.roadIntersection4,sprites.vehicle.roadIntersection2,sprites.vehicle.roadIntersection3,sprites.dungeon.hazardSpike,sprites.dungeon.buttonTealDepressed,sprites.builtin.field1,sprites.castle.shrub,sprites.castle.rock1,sprites.castle.rock0,sprites.castle.rock2,sprites.castle.saplingPine,sprites.builtin.crowd0,sprites.builtin.brick,sprites.dungeon.doorLockedWest,sprites.dungeon.doorOpenWest,myTiles.tile1,myTiles.tile2,myTiles.tile3,myTiles.tile4,myTiles.tile5,sprites.dungeon.floorDark0,sprites.dungeon.floorLight4,sprites.dungeon.stairNorth,sprites.dungeon.purpleOuterWest2,sprites.dungeon.floorLight0,sprites.dungeon.chestClosed,sprites.dungeon.collectibleInsignia,sprites.builtin.forestTiles21,sprites.dungeon.stairSouth,sprites.castle.saplingOak,sprites.dungeon.greenOuterNorth2,sprites.dungeon.greenOuterSouth2,sprites.dungeon.greenOuterEast2,sprites.dungeon.greenOuterWest2,sprites.dungeon.stairLadder,sprites.dungeon.purpleOuterNorth2,sprites.castle.tileDarkGrass2,sprites.builtin.forestTiles0,sprites.dungeon.floorDarkDiamond,sprites.dungeon.floorLight3,sprites.dungeon.floorLightMoss,sprites.dungeon.floorLight5,sprites.dungeon.stairEast,sprites.dungeon.stairWest,sprites.dungeon.stairLarge,sprites.builtin.forestTiles22,sprites.builtin.forestTiles3,sprites.builtin.forestTiles20,sprites.builtin.forestTiles4,sprites.castle.tilePath1,sprites.castle.tilePath2,sprites.castle.tilePath4,sprites.castle.tilePath7,sprites.castle.tilePath8,sprites.castle.tilePath3,sprites.castle.tilePath6,sprites.castle.tilePath5,sprites.builtin.crowd2,sprites.dungeon.doorClosedEast,sprites.dungeon.doorClosedWest,sprites.dungeon.doorLockedEast,sprites.dungeon.doorClosedSouth,sprites.dungeon.doorOpenNorth,sprites.vehicle.roadTurn1,sprites.vehicle.roadTurn4],
             TileScale.Sixteen
         ))
 let nurse2 = sprites.create(img`
@@ -1507,8 +1588,8 @@ creatvirus()
 initattention()
 initAnimate()
 initAnimateAttack()
-info.setLife(3)
 display()
+info.setLife(12)
 direction = 0
 playersick = 0
 carry = sprites.create(img`
