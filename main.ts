@@ -4,7 +4,12 @@ enum ActionKind {
     Jumping,
     runleft,
     runright,
-    runup
+    runup,
+    rundown,
+    runleftattack,
+    runrigthattack,
+    runupattack,
+    rundownattack
 }
 namespace SpriteKind {
     export const person = SpriteKind.create()
@@ -12,6 +17,7 @@ namespace SpriteKind {
     export const nurse = SpriteKind.create()
     export const obstacle = SpriteKind.create()
     export const Plaguebearer = SpriteKind.create()
+    export const pet = SpriteKind.create()
 }
 namespace myTiles {
     //% blockIdentity=images._tile
@@ -158,24 +164,37 @@ f f 2 2 2 2 f b b b b f c c . .
     } else if (site == 3) {
         tiles.placeOnTile(bat, tiles.getTileLocation(21, 24))
     }
-    if (Math.percentChance(50)) {
-        bat.ax = 10
-        if (Math.percentChance(50)) {
-            bat.vx = Math.randomRange(20, 60)
-        } else {
-            bat.vx = Math.randomRange(-20, -60)
-        }
-    } else {
-        bat.ay = 10
-        if (Math.percentChance(50)) {
-            bat.ay = Math.randomRange(20, 60)
-        } else {
-            bat.ay = Math.randomRange(-20, -60)
-        }
-    }
+    dorun(bat)
 }
+controller.anyButton.onEvent(ControllerButtonEvent.Released, function () {
+    animation.setAction(hero, ActionKind.Idle)
+})
+sprites.onOverlap(SpriteKind.Player, SpriteKind.nurse, function (sprite, otherSprite) {
+    playersick = 0
+    music.magicWand.play()
+    sprite.startEffect(effects.smiles, 500)
+    otherSprite.startEffect(effects.hearts, 500)
+    info.setLife(3)
+})
+scene.onHitWall(SpriteKind.Plaguebearer, function (sprite) {
+    doknock(sprite)
+})
+sprites.onOverlap(SpriteKind.Plaguebearer, SpriteKind.obstacle, function (sprite, otherSprite) {
+    doknock(sprite)
+})
+sprites.onOverlap(SpriteKind.person, SpriteKind.Enemy, function (sprite, otherSprite) {
+    scene.cameraShake(4, 500)
+    personnum += -1
+    sicknum += 1
+    music.pewPew.play()
+    sprite.say("Monster！", 1000)
+    sprite.startEffect(effects.coolRadial)
+    sprite.setKind(SpriteKind.Plaguebearer)
+    sprite.setFlag(SpriteFlag.StayInScreen, false)
+    display()
+})
 function initAnimate () {
-    heroleft = animation.createAnimation(ActionKind.runleft, 1000)
+    heroleft = animation.createAnimation(ActionKind.runleft, 80)
     heroleft.addAnimationFrame(img`
 . . . . . . . . . . . . . . . . 
 . . . . f f f f f f . . . . . . 
@@ -212,7 +231,8 @@ function initAnimate () {
 . . . . . f f f f f f . . . . . 
 . . . . . . . f f f . . . . . . 
 `)
-    heroright = animation.createAnimation(ActionKind.runright, 1000)
+    animation.attachAnimation(hero, heroleft)
+    heroright = animation.createAnimation(ActionKind.runright, 80)
     heroright.addAnimationFrame(img`
 . . . . . f f f f f f . . . . . 
 . . . f f e e e e f 2 f . . . . 
@@ -249,7 +269,8 @@ function initAnimate () {
 . . . f f f f f f f f f f . . . 
 . . . . f f . . . f f f . . . . 
 `)
-    heroup = animation.createAnimation(ActionKind.runup, 1000)
+    animation.attachAnimation(hero, heroright)
+    heroup = animation.createAnimation(ActionKind.runup, 80)
     heroup.addAnimationFrame(img`
 . . . . . . . . . . . . . . . . 
 . . . . . . f f f f . . . . . . 
@@ -286,86 +307,195 @@ function initAnimate () {
 . . . e f f f f f f e e 4 . . . 
 . . . . f f f . . . . . . . . . 
 `)
+    animation.attachAnimation(hero, heroup)
+    herodown = animation.createAnimation(ActionKind.rundown, 80)
+    herodown.addAnimationFrame(img`
+. . . . . . . . . . . . . . . . 
+. . . . . . f f f f . . . . . . 
+. . . . f f f 2 2 f f f . . . . 
+. . . f f f 2 2 2 2 f f f . . . 
+. . f f f e e e e e e f f f . . 
+. . f e e 2 2 2 2 2 2 e f f . . 
+. f f e 2 f f f f f f 2 e f f . 
+. f f f f f e e e e f f f f f . 
+. . f e f b f 4 4 f b f e f . . 
+. . f e 4 1 f d d f 1 4 e f f . 
+. . e f e 4 d d d d 4 e f f d f 
+. . e 4 d d e 2 2 2 2 f e f b f 
+. . . e d d e 2 2 2 2 f 4 f b f 
+. . . . e e f 5 5 4 4 f . f c f 
+. . . . . f f f f f f f . f f . 
+. . . . . . . . . f f f . . . . 
+`)
+    herodown.addAnimationFrame(img`
+. . . . . . . . . . . . . . . . 
+. . . . . . f f f f . . . . . . 
+. . . . f f f 2 2 f f f . . . . 
+. . . f f f 2 2 2 2 f f f . . . 
+. . f f f e e e e e e f f f . . 
+. . f f e 2 2 2 2 2 2 e e f . . 
+. f f e 2 f f f f f f 2 e f f . 
+. f f f f f e e e e f f f f f . 
+. . f e f b f 4 4 f b f e f . . 
+. f f e 4 1 f d d f 1 4 e f . . 
+f d f f e 4 d d d d 4 e f e . . 
+f b f e f 2 2 2 2 e d d 4 e . . 
+f b f 4 f 2 2 2 2 e d d e . . . 
+f c f . f 4 4 5 5 f e e . . . . 
+. f f . f f f f f f f . . . . . 
+. . . . f f f . . . . . . . . . 
+`)
+    animation.attachAnimation(hero, herodown)
 }
-scene.onHitWall(SpriteKind.Plaguebearer, function (sprite) {
-    if (sprite.vx > 0) {
-        sprite.vx = Math.randomRange(-20, -60)
-        sprite.vy = Math.randomRange(-30, 30)
-    } else {
-        sprite.vx = Math.randomRange(20, 60)
-        sprite.vy = Math.randomRange(-30, 30)
-    }
-    if (sprite.vy > 0) {
-        sprite.vx = Math.randomRange(-60, 80)
-        sprite.vy = Math.randomRange(-20, -60)
-    } else {
-        sprite.vy = Math.randomRange(20, 60)
-        sprite.vx = Math.randomRange(-80, 60)
+function initattention () {
+    game.setDialogFrame(img`
+c c c c c c c c c c c c c c c c 
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+c c c c c c c c c c c c c c c c 
+`)
+    game.setDialogTextColor(8)
+    game.showLongText("按A可以攻击蝙蝠，" + "按B捡起口罩可以保护自己！", DialogLayout.Top)
+    game.showLongText("按B捡起汽车可以作为障碍物！", DialogLayout.Top)
+    game.showLongText("可以按B把受到感染的人带到医院里进行救治", DialogLayout.Top)
+    game.showLongText("如果自己被感染了，可以找护士救治", DialogLayout.Top)
+}
+sprites.onOverlap(SpriteKind.Player, SpriteKind.obstacle, function (sprite, otherSprite) {
+    if (controller.B.isPressed()) {
+        carry = otherSprite
     }
 })
-sprites.onOverlap(SpriteKind.person, SpriteKind.Enemy, function (sprite, otherSprite) {
-    scene.cameraShake(4, 500)
-    personnum += -1
-    sicknum += 1
-    sprite.say("Monster！", 1000)
-    sprite.startEffect(effects.coolRadial)
-    sprite.setKind(SpriteKind.Plaguebearer)
-    sprite.setFlag(SpriteFlag.StayInScreen, false)
-    display()
+controller.B.onEvent(ControllerButtonEvent.Released, function () {
+    carry = sprites.create(img`
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+`, SpriteKind.Player)
 })
 function initlocation () {
     for (let value of tiles.getTilesByType(myTiles.tile3)) {
         if (Math.percentChance(20)) {
-            xper = sprites.create(persons[Math.randomRange(0, 4)].image, SpriteKind.person)
+            xper = sprites.create(persons[Math.randomRange(0, 4)], SpriteKind.person)
             personnum += 1
             xper.setFlag(SpriteFlag.BounceOnWall, false)
             tiles.placeOnTile(xper, value)
-            if (Math.percentChance(50)) {
-                xper.ax = 10
-                if (Math.percentChance(50)) {
-                    xper.vx = Math.randomRange(20, 60)
-                } else {
-                    xper.vx = Math.randomRange(-20, -60)
-                }
-            } else {
-                xper.ay = 10
-                if (Math.percentChance(50)) {
-                    xper.ay = Math.randomRange(20, 60)
-                } else {
-                    xper.ay = Math.randomRange(-20, -60)
-                }
-            }
+            dorun(xper)
         }
     }
     for (let index = 0; index < 4; index++) {
-        xpet = sprites.create(pets[Math.randomRange(0, 1)].image, SpriteKind.person)
+        xpet = sprites.create(pets[Math.randomRange(0, 1)], SpriteKind.pet)
         tiles.placeOnRandomTile(xpet, sprites.castle.tileGrass2)
+        xpet.setFlag(SpriteFlag.BounceOnWall, true)
+        dorun(xpet)
     }
     for (let index = 0; index < 4; index++) {
-        xpet = sprites.create(pets[Math.randomRange(0, 1)].image, SpriteKind.person)
+        xpet = sprites.create(pets[Math.randomRange(0, 1)], SpriteKind.pet)
         tiles.placeOnRandomTile(xpet, myTiles.tile3)
+        xpet.setFlag(SpriteFlag.BounceOnWall, true)
+        dorun(xpet)
     }
 }
+sprites.onOverlap(SpriteKind.Enemy, SpriteKind.obstacle, function (sprite, otherSprite) {
+    doknock(sprite)
+})
+function doSomething () {
+    animation.setAction(hero, ActionKind.runright)
+}
 scene.onHitWall(SpriteKind.Enemy, function (sprite) {
-    if (sprite.vx > 0) {
-        sprite.vx = Math.randomRange(-20, -60)
-        sprite.vy = Math.randomRange(-30, 30)
-    } else {
-        sprite.vx = Math.randomRange(20, 60)
-        sprite.vy = Math.randomRange(-30, 30)
-    }
-    if (sprite.vy > 0) {
-        sprite.vx = Math.randomRange(-60, 80)
-        sprite.vy = Math.randomRange(-20, -60)
-    } else {
-        sprite.vy = Math.randomRange(20, 60)
-        sprite.vx = Math.randomRange(-80, 60)
+    doknock(sprite)
+})
+controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (direction == 1) {
+        music.playTone(698, music.beat(BeatFraction.Eighth))
+        animation.setAction(hero, ActionKind.runleftattack)
+    } else if (direction == 2) {
+        music.playTone(698, music.beat(BeatFraction.Eighth))
+        animation.setAction(hero, ActionKind.runrigthattack)
+    } else if (direction == 3) {
+        music.playTone(698, music.beat(BeatFraction.Eighth))
+        animation.setAction(hero, ActionKind.runupattack)
+    } else if (direction == 4) {
+        music.playTone(698, music.beat(BeatFraction.Eighth))
+        animation.setAction(hero, ActionKind.rundownattack)
     }
 })
+sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function (sprite, otherSprite) {
+    if (controller.A.isPressed()) {
+        if (direction == 1) {
+            if (sprite.x - otherSprite.x >= 0) {
+                music.baDing.play()
+                otherSprite.destroy(effects.fire, 1000)
+            }
+        } else if (direction == 2) {
+            if (sprite.x - otherSprite.x <= 0) {
+                music.baDing.play()
+                otherSprite.destroy(effects.fire, 1000)
+            }
+        } else if (direction == 3) {
+            if (sprite.y - otherSprite.y >= 0) {
+                music.baDing.play()
+                otherSprite.destroy(effects.fire, 1000)
+            }
+        } else if (direction == 4) {
+            if (sprite.y - otherSprite.y <= 0) {
+                music.baDing.play()
+                otherSprite.destroy(effects.fire, 1000)
+            }
+        }
+    } else {
+        playersick = 1
+        sprite.startEffect(effects.coolRadial)
+        info.changeLifeBy(-1)
+        pause(1000)
+    }
+})
+function dorun (mySprite: Sprite) {
+    if (Math.percentChance(50)) {
+        mySprite.ax = 10
+        if (Math.percentChance(50)) {
+            mySprite.vx = Math.randomRange(20, 60)
+        } else {
+            mySprite.vx = Math.randomRange(-20, -60)
+        }
+    } else {
+        mySprite.ay = 10
+        if (Math.percentChance(50)) {
+            mySprite.ay = Math.randomRange(20, 60)
+        } else {
+            mySprite.ay = Math.randomRange(-20, -60)
+        }
+    }
+}
 sprites.onOverlap(SpriteKind.person, SpriteKind.Plaguebearer, function (sprite, otherSprite) {
     scene.cameraShake(4, 500)
     personnum += -1
     sicknum += 1
+    music.pewPew.play()
     sprite.say("I'm sick.", 2000)
     sprite.startEffect(effects.coolRadial)
     sprite.setKind(SpriteKind.Plaguebearer)
@@ -373,20 +503,7 @@ sprites.onOverlap(SpriteKind.person, SpriteKind.Plaguebearer, function (sprite, 
     display()
 })
 scene.onHitWall(SpriteKind.person, function (sprite) {
-    if (sprite.vx > 0) {
-        sprite.vx = Math.randomRange(-20, -60)
-        sprite.vy = Math.randomRange(-30, 30)
-    } else {
-        sprite.vx = Math.randomRange(20, 60)
-        sprite.vy = Math.randomRange(-30, 30)
-    }
-    if (sprite.vy > 0) {
-        sprite.vx = Math.randomRange(-60, 80)
-        sprite.vy = Math.randomRange(-20, -60)
-    } else {
-        sprite.vy = Math.randomRange(20, 60)
-        sprite.vx = Math.randomRange(-80, 60)
-    }
+    doknock(sprite)
 })
 function display () {
     game.setDialogFrame(img`
@@ -411,8 +528,7 @@ c c c c c c c c c c c c c c c c
     game.showLongText("健康" + personnum + "生病" + sicknum, DialogLayout.Bottom)
 }
 function initperson () {
-    persons = sprites.allOfKind(SpriteKind.Player)
-    persons = [sprites.create(img`
+    persons = [img`
 . f f f . f f f f . f f f . 
 f f f f f c c c c f f f f f 
 f f f f b c c c c b f f f f 
@@ -429,7 +545,7 @@ f f f c 3 c c c c 3 c f f f
 . 4 4 f 6 6 6 6 6 6 f 4 4 . 
 . . . . f f f f f f . . . . 
 . . . . f f . . f f . . . . 
-`, SpriteKind.Player), sprites.create(img`
+`, img`
 . . . . f f f f . . . . . 
 . . f f f f f f f f . . . 
 . f f f f f f c f f f . . 
@@ -446,7 +562,7 @@ e 4 f 7 7 7 7 7 7 f 4 e .
 e e f 6 6 6 6 6 6 f e e . 
 . . . f f f f f f . . . . 
 . . . f f . . f f . . . . 
-`, SpriteKind.Player), sprites.create(img`
+`, img`
 . . . . . f f f f . . . . . 
 . . . f f 5 5 5 5 f f . . . 
 . . f 5 5 5 5 5 5 5 5 f . . 
@@ -463,7 +579,7 @@ f b b 4 1 f d d f 1 4 b b f
 . 4 f b 3 b 3 b 3 b b f 4 . 
 . . f f 3 b 3 b 3 3 f f . . 
 . . . . f f b b f f . . . . 
-`, SpriteKind.Player), sprites.create(img`
+`, img`
 . . . . f f f f . . . . 
 . . f f e e e e f f . . 
 . f f e e e e e e f f . 
@@ -480,7 +596,7 @@ e 4 f b 1 1 1 1 b f 4 e
 4 4 f 6 6 6 6 6 6 f 4 4 
 . . . f f f f f f . . . 
 . . . f f . . f f . . . 
-`, SpriteKind.Player), sprites.create(img`
+`, img`
 . . . . . . 5 . 5 . . . . . . . 
 . . . . . f 5 5 5 f f . . . . . 
 . . . . f 1 5 2 5 1 6 f . . . . 
@@ -497,9 +613,8 @@ e 4 f b 1 1 1 1 b f 4 e
 . . . f 3 3 5 3 3 5 3 3 f . . . 
 . . . f f f f f f f f f f . . . 
 . . . . . f f . . f f . . . . . 
-`, SpriteKind.Player)]
-    pets = sprites.allOfKind(SpriteKind.Player)
-    pets = [sprites.create(img`
+`]
+    pets = [img`
 . . 4 4 4 . . . . 4 4 4 . . . . 
 . 4 5 5 5 e . . e 5 5 5 4 . . . 
 4 5 5 5 5 5 e e 5 5 5 5 5 4 . . 
@@ -514,7 +629,7 @@ e 5 4 4 5 5 5 5 5 5 4 4 5 e . .
 . . . f 5 5 5 5 5 4 5 5 f f . . 
 . . . f 5 f f f 5 f f 5 f . . . 
 . . . f f . . f f . . f f . . . 
-`, SpriteKind.Player), sprites.create(img`
+`, img`
 e e e . . . . e e e . . . . 
 c d d c . . c d d c . . . . 
 c b d d f f d d b c . . . . 
@@ -529,7 +644,7 @@ f b d d b b d d 2 f . f d f
 . f d d d d d b d d f f f . 
 . f d f f f d f f d f . . . 
 . f f . . f f . . f f . . . 
-`, SpriteKind.Player)]
+`]
 }
 function initequipment () {
     bed = sprites.create(img`
@@ -665,7 +780,7 @@ f d c b b d d d d d d d d d d d d d d b b c d f
 f d c b b d d d d d d d d d d d d d d b b c d f 
 f d f f f f f f f f f f f f f f f f f f f f d f 
 f f f f f f f f f f f f f f f f f f f f f f f f 
-`, SpriteKind.equipment)
+`, SpriteKind.obstacle)
     tiles.placeOnTile(desk, tiles.getTileLocation(6, 17))
     desk = sprites.create(img`
 . c c c c c c c c c c c c c c c c c c c c c c . 
@@ -692,7 +807,7 @@ f d c b b d d d d d d d d d d d d d d b b c d f
 f d c b b d d d d d d d d d d d d d d b b c d f 
 f d f f f f f f f f f f f f f f f f f f f f d f 
 f f f f f f f f f f f f f f f f f f f f f f f f 
-`, SpriteKind.equipment)
+`, SpriteKind.obstacle)
     tiles.placeOnTile(desk, tiles.getTileLocation(9, 17))
     desk = sprites.create(img`
 . . . c c c c c c c c c c c c c c c c c c . . . 
@@ -711,7 +826,7 @@ c c 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 c c
 c c 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 c c 
 c c c c c c c c c c c c c c c c c c c c c c c c 
 . . c b b c . . . . . . . . . . . . c b b c . . 
-`, SpriteKind.equipment)
+`, SpriteKind.obstacle)
     tiles.placeOnTile(desk, tiles.getTileLocation(16, 14))
     obstacle2 = sprites.create(img`
 . . . . . . . . . . . . . . . . 
@@ -790,20 +905,503 @@ c c c c c c c c c c c c c c c c c c c c c c c c
 `, SpriteKind.obstacle)
     tiles.placeOnTile(obstacle2, tiles.getTileLocation(6, 24))
 }
+sprites.onOverlap(SpriteKind.person, SpriteKind.obstacle, function (sprite, otherSprite) {
+    doknock(sprite)
+})
+function doknock (mySprite: Sprite) {
+    if (mySprite.vx > 0) {
+        mySprite.vx = Math.randomRange(-20, -60)
+        mySprite.vy = Math.randomRange(-30, 30)
+    } else {
+        mySprite.vx = Math.randomRange(20, 60)
+        mySprite.vy = Math.randomRange(-30, 30)
+    }
+    if (mySprite.vy > 0) {
+        mySprite.vx = Math.randomRange(-60, 80)
+        mySprite.vy = Math.randomRange(-20, -60)
+    } else {
+        mySprite.vy = Math.randomRange(20, 60)
+        mySprite.vx = Math.randomRange(-80, 60)
+    }
+}
+controller.anyButton.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (controller.left.isPressed()) {
+        direction = 1
+        animation.setAction(hero, ActionKind.runleft)
+    } else if (controller.right.isPressed()) {
+        direction = 2
+        animation.setAction(hero, ActionKind.runright)
+    } else if (controller.up.isPressed()) {
+        direction = 3
+        animation.setAction(hero, ActionKind.runup)
+    } else if (controller.down.isPressed()) {
+        direction = 4
+        animation.setAction(hero, ActionKind.rundown)
+    } else {
+        animation.setAction(hero, ActionKind.Idle)
+    }
+})
+function initAnimateAttack () {
+    heroleftattack = animation.createAnimation(ActionKind.runleftattack, 100)
+    heroleftattack.addAnimationFrame(img`
+. . . . . . . . . . . . . . f f f f f f . . . . 
+. . . . . . . . . . . . . f 2 f e e e e f f . . 
+. . . . . . . . . . . . f 2 2 2 f e e e e f f . 
+. . . . . . . c c . . . f e e e e f f e e e f . 
+. . . . . . . c d c . f e 2 2 2 2 e e f f f f . 
+. . . . . . . c d d c f 2 e f f f f 2 2 2 e f . 
+. . . . . . . . c d d c f f e e e f f f f f f f 
+. . . . . . . . . c d d c e 4 4 f b e 4 4 e f f 
+. . . . . . . . . . c d c e d d f 1 4 d 4 e e f 
+. . . . . . . . . . c c c d e d d d 4 e e e f . 
+. . . . . . . . . . . e d d 4 e 4 4 e e f f . . 
+. . . . . . . . . . . . e e 4 4 2 2 2 2 f . . . 
+. . . . . . . . . . . . . f 2 e 2 2 2 2 f . . . 
+. . . . . . . . . . . . . f 5 5 4 4 4 4 f . . . 
+. . . . . . . . . . . . . . f f f f f f . . . . 
+. . . . . . . . . . . . . . . . f f f . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+`)
+    heroleftattack.addAnimationFrame(img`
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . f f f . . . . . . . 
+. . . . . . . . . . . . . f 2 f f f f f . . . . 
+. . . . . . . . . . . f f 2 2 e e e e e f f . . 
+. . . . . . . . . . f f 2 2 2 e e e e e e f f . 
+. . . . . . . . . . f e e e e f f f e e e e f . 
+. . . . . . . . . f e 2 2 2 2 e e e f f f f f . 
+. . . . . . . . . f 2 e f f f f f 2 2 2 e f f f 
+. . c c . . . . . f f f e e e f f f f f f f f f 
+. . c d c c . . . f e e 4 4 f b b e 4 4 e f e f 
+. . c c d d c c . . f e d d f b b 4 d 4 e e f . 
+. . . . c d d d c e e f d d d d d 4 e e e f . . 
+. . . . . c c d c d d e e 2 2 2 2 2 2 2 f . . . 
+. . . . . . c c c d d 4 4 e 5 4 4 4 4 4 f . . . 
+. . . . . . . . . e e e e f f f f f f f f . . . 
+. . . . . . . . . . . . . f f . . . f f f . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+`)
+    heroleftattack.addAnimationFrame(img`
+. . . . . . . . . . . . . . . f f . . . . . . . 
+. . . . . . . . . . . . . f f 2 f f f f . . . . 
+. . . . . . . . . . . . f f 2 f e e e e f f . . 
+. . . . . . . . . . . f f 2 2 f e e e e e f f . 
+. . . . . . . . . . . f e e e e f f e e e e f . 
+. . . . . . . . . . f e 2 2 2 2 e e f f f f f . 
+. . . . . . . . . . f 2 e f f f f 2 2 2 e f f f 
+. . . . . . . . . . f f f e e e f f f f f f f f 
+. . . . . . . . . . f e e 4 4 f b e 4 4 e f e f 
+. . . . . . . . . . . f e d d f b 4 d 4 e e f . 
+. . . . . . . . . . c . e e d d d 4 e e e f . . 
+. . . . c c c c c c c e d d e e 2 2 2 2 f . . . 
+. . . . . d d d d d c e d d 4 4 e 4 4 4 f . . . 
+. . . . . . c c c c c . e e e e f f f f f . . . 
+. . . . . . . . . . c . . . f f f f f f f f . . 
+. . . . . . . . . . . . . . . f f . . f f f . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+`)
+    heroleftattack.addAnimationFrame(img`
+. . . . . . . . . . . . . . f f f f f f . . . . 
+. . . . . . . . . . . . . f 2 f e e e e f f . . 
+. . . . . . . . . . . . f 2 2 2 f e e e e f f . 
+. . . . . . . . . . . . f e e e e f f e e e f . 
+. . . . . . . . . . . f e 2 2 2 2 e e f f f f . 
+. . . . . . . . . . . f 2 e f f f f 2 2 2 e f . 
+. . . . . . . . . . . f f f e e e f f f f f f f 
+. . . . . . . . . . . f e e 4 4 f b e 4 4 e f f 
+. . . . . . . . . . . . f e d d f 1 4 d 4 e e f 
+. . . . . . . . . . . . . f d d d d 4 e e e f . 
+. . . . . . . . . . . . . f e 4 4 4 e d d f . . 
+. . . . . . . . . . . . . c c c 2 2 e d d f . . 
+. . . . . . . . . . . . . c d c 2 2 f e e . . . 
+. . . . . . . . . . . . c d d c 4 4 4 4 f . . . 
+. . . . . . . . . . . c d d c f f f f f . . . . 
+. . . . . . . . . . c d d c . . f f f . . . . . 
+. . . . . . . . . . c d c . . . . . . . . . . . 
+. . . . . . . . . . c c . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+`)
+    animation.attachAnimation(hero, heroleftattack)
+    herorightattack = animation.createAnimation(ActionKind.runrigthattack, 100)
+    herorightattack.addAnimationFrame(img`
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . f f f f f f . . . . . . . . . . . . . . 
+. . f f e e e e f 2 f . . . . . . . . . . . . . 
+. f f e e e e f 2 2 2 f . . . . . . . . . . . . 
+. f e e e f f e e e e f . . . c c . . . . . . . 
+. f f f f e e 2 2 2 2 e f . c d c . . . . . . . 
+. f e 2 2 2 f f f f e 2 f c d d c . . . . . . . 
+f f f f f f f e e e f f c d d c . . . . . . . . 
+f f e 4 4 e b f 4 4 e c d d c . . . . . . . . . 
+f e e 4 d 4 1 f d d e c d c . . . . . . . . . . 
+. f e e e 4 d d d e d c c c . . . . . . . . . . 
+. . f f e e 4 4 e 4 d d e . . . . . . . . . . . 
+. . . f 2 2 2 2 4 4 e e . . . . . . . . . . . . 
+. . . f 2 2 2 2 e 2 f . . . . . . . . . . . . . 
+. . . f 4 4 4 4 5 5 f . . . . . . . . . . . . . 
+. . . . f f f f f f . . . . . . . . . . . . . . 
+. . . . . f f f . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+`)
+    herorightattack.addAnimationFrame(img`
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . f f f . . . . . . . . . . . . . . 
+. . . . f f f f f 2 f . . . . . . . . . . . . . 
+. . f f e e e e e 2 2 f f . . . . . . . . . . . 
+. f f e e e e e e 2 2 2 f f . . . . . . . . . . 
+. f e e e e f f f e e e e f . . . . . . . . . . 
+. f f f f f e e e 2 2 2 2 e f . . . . . . . . . 
+f f f e 2 2 2 f f f f f e 2 f . . . . . . . . . 
+f f f f f f f f f e e e f f f . . . . . c c . . 
+f e f e 4 4 e b b f 4 4 e e f . . . c c d c . . 
+. f e e 4 d 4 b b f d d e f . . c c d d c c . . 
+. . f e e e 4 d d d d d f e e c d d d c . . . . 
+. . . f 2 2 2 2 2 2 2 e e d d c d c c . . . . . 
+. . . f 4 4 4 4 4 5 e 4 4 d d c c c . . . . . . 
+. . . f f f f f f f f e e e e . . . . . . . . . 
+. . . f f 3 . . . f f . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+`)
+    herorightattack.addAnimationFrame(img`
+. . . . . . . f f . . . . . . . . . . . . . . . 
+. . . . f f f f 2 f f . . . . . . . . . . . . . 
+. . f f e e e e f 2 f f . . . . . . . . . . . . 
+. f f e e e e e f 2 2 f f . . . . . . . . . . . 
+. f e e e e f f e e e e f . . . . . . . . . . . 
+. f f f f f e e 2 2 2 2 e f . . . . . . . . . . 
+f f f e 2 2 2 f f f f e 2 f . . . . . . . . . . 
+f f f f f f f f e e e f f f . . . . . . . . . . 
+f e f e 4 4 e b f 4 4 e e f . . . . . . . . . . 
+. f e e 4 d 4 b f d d e f . . . . . . . . . . . 
+. . f e e e 4 d d d e e . c . . . . . . . . . . 
+. . . f 2 2 2 2 e e d d e c c c c c c c . . . . 
+. . . f 4 4 4 e 4 4 d d e c d d d d d . . . . . 
+. . . f f f f f e e e e . c c c c c . . . . . . 
+. . f f f f f f f f . . . c . . . . . . . . . . 
+. . f f f . . f f . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+`)
+    herorightattack.addAnimationFrame(img`
+. . . . f f f f f f . . . . . . . . . . . . . . 
+. . f f e e e e f 2 f . . . . . . . . . . . . . 
+. f f e e e e f 2 2 2 f . . . . . . . . . . . . 
+. f e e e f f e e e e f . . . . . . . . . . . . 
+. f f f f e e 2 2 2 2 e f . . . . . . . . . . . 
+. f e 2 2 2 f f f f e 2 f . . . . . . . . . . . 
+f f f f f f f e e e f f f . . . . . . . . . . . 
+f f e 4 4 e b f 4 4 e e f . . . . . . . . . . . 
+f e e 4 d 4 1 f d d e f . . . . . . . . . . . . 
+. f e e e 4 d d d d f . . . . . . . . . . . . . 
+. . f d d e 4 4 4 e f . . . . . . . . . . . . . 
+. . f d d e 2 2 c c c . . . . . . . . . . . . . 
+. . . e e f 2 2 c d c . . . . . . . . . . . . . 
+. . . f 4 4 4 4 c d d c . . . . . . . . . . . . 
+. . . . f f f f f c d d c . . . . . . . . . . . 
+. . . . . f f f . . c d d c . . . . . . . . . . 
+. . . . . . . . . . . c d c . . . . . . . . . . 
+. . . . . . . . . . . . c c . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+`)
+    animation.attachAnimation(hero, herorightattack)
+    heroupattack = animation.createAnimation(ActionKind.runupattack, 100)
+    heroupattack.addAnimationFrame(img`
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . f f f f . . . . . . . . . . . . . . 
+. . . . f f e e e e f f . . . . . . . . . . . . 
+. . . f e e e f f e e e f . . . . . . . . . . . 
+. . f f f f f 2 2 f f f f f . . . . . . . . . . 
+. . f f e 2 e 2 2 e 2 e f f . . . . c c c . . . 
+. . f e 2 f 2 f f 2 f 2 e f . . . c d d c . . . 
+. . f f f 2 2 e e 2 2 f f f . . c d d c . . . . 
+. f f e f 2 f e e f 2 f e f f c d d c . . . . . 
+. f e e f f e e e e f e e e f d d c . . . . . . 
+. . f e e e e e e e e e e f d d c . . . . . . . 
+. . . f e e e e e e e e f d d c . . . . . . . . 
+. . e 4 f f f f f f f f 4 e d . . . . . . . . . 
+. . 4 d f 2 2 2 2 2 2 f d 4 . . . . . . . . . . 
+. . 4 4 f 4 4 4 4 4 4 f 4 4 . . . . . . . . . . 
+. . . . . f f f f f f . . . . . . . . . . . . . 
+. . . . . f f . . f f . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+`)
+    heroupattack.addAnimationFrame(img`
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . c . . . . . . . . . 
+. . . . . . . . . . . . . c 1 . . . . . . . . . 
+. . . . . . . . . . . . . c 1 c . . . . . . . . 
+. . . . . . . . . . . . . c 1 d . . . . . . . . 
+. . . . . . . . . . . . . d 1 c . . . . . . . . 
+. . . . . . . . . . . . . c 1 c . . . . . . . . 
+. . . . . . . . . . . . . d 1 c . . . . . . . . 
+. . . . . f f f f . . . . c 1 d . . . . . . . . 
+. . . f f e e e e f f . . c 1 c . . . . . . . . 
+. . f e e e f f e e e f . c 1 d . . . . . . . . 
+. . f f f f 2 2 f f f f . d 1 c . . . . . . . . 
+. f f e 2 e 2 2 e 2 e f f c 1 c . . . . . . . . 
+. f e 2 f 2 f f f 2 f e f d 1 c . . . . . . . . 
+. f f f 2 f e e 2 2 f f f c 1 d . . . . . . . . 
+. f e 2 f f e e 2 f e e f d 1 c . . . . . . . . 
+f f e f f e e e f e e e f f 1 1 c . . . . . . . 
+f f e e e e e e e e e e f 1 f . . . . . . . . . 
+. . f e e e e e e e e f f b f . . . . . . . . . 
+. . e f f f f f f f f 4 f b f . . . . . . . . . 
+. . 4 f 2 2 2 2 2 e d d f c f . . . . . . . . . 
+. . e f f f f f f e e 4 f f . . . . . . . . . . 
+. . . f f f . . . . . . . . . . . . . . . . . . 
+`)
+    heroupattack.addAnimationFrame(img`
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . c c . . . . . . . . . . . . . . . . . . 
+. . . . d d . . . . . . . . . . . . . . . . . . 
+. . . . c d c . . . . . . . . . . . . . . . . . 
+. . . . . d d c . . . . . . . . . . . . . . . . 
+. . . . . c f f f f . . . . . . . . . . . . . . 
+. . . . f f e e e e f f . . . . . . . . . . . . 
+. . . f e e e f f e e e f . . . . . . . . . . . 
+. . f f f f f 2 2 f f f f f . . . . . . . . . . 
+. . f f e 2 e 2 2 e 2 e f f . . . . . . . . . . 
+. . f e 2 f 2 f f 2 f 2 e f . . . . . . . . . . 
+. . f f f 2 2 e e 2 2 f f f . . . . . . . . . . 
+. f f e f 2 f e e f 2 f e f f . . . . . . . . . 
+. f e e f f e e e e f e e e f . . . . . . . . . 
+. . f e e e e e e e e e e f d c . . . . . . . . 
+. . . f e e e e e e e e f d c . . . . . . . . . 
+. . e 4 f f f f f f f f 4 e . . . . . . . . . . 
+. . 4 d f 2 2 2 2 2 2 f d 4 . . . . . . . . . . 
+. . 4 4 f 4 4 4 4 4 4 f 4 4 . . . . . . . . . . 
+. . . . . f f f f f f . . . . . . . . . . . . . 
+. . . . . f f . . f f . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+`)
+    heroupattack.addAnimationFrame(img`
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . f f f f . . . . . . . . . . . . . . . 
+. . . f f e e e e f f . . . . . . . . . . . . . 
+. . f e e e f f e e e f . 8 . . . . . . . . . . 
+. . f f f f 2 2 f f f f . . . . . . . . . . . . 
+. f f e 2 e 2 2 e 2 e f f . 8 . 8 . . . . . . . 
+. f e f 2 f f f 2 f 2 e f . . . . . . . . . . . 
+. f f f 2 2 e e f 2 f f f c . . 8 . . . . . . . 
+. f e e f 2 e e f f 2 e f 1 c . . . . . . . . . 
+. f e e e f e e e f f e f f c . . 8 . . . . . . 
+. f e e e e e e e e e e f f 1 c . . . . . . . . 
+. f f e e e e e e e e f 1 1 c . 8 . . . . . . . 
+. f 4 f f f f f f f f e c . . . . . . . . . . . 
+. f d d e 2 2 2 2 2 f 4 . . . . . . . . . . . . 
+. f 4 e e f f f f f f e . . . . . . . . . . . . 
+. . . . . . . . f f f . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+`)
+    animation.attachAnimation(hero, heroupattack)
+    herodownattack = animation.createAnimation(ActionKind.rundownattack, 100)
+    herodownattack.addAnimationFrame(img`
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . f f f f . . . . . . . . . . . . . . . 
+. . . f f f 2 2 f f f . . . . . . . . . . . . . 
+. . f f f 2 2 2 2 f f f . . . . . . . . . . . . 
+. f f f e e e e e e f f f . . . . . . . . . . . 
+. f f e 2 2 2 2 2 2 e e f . . . . . . . . . . . 
+. f e 2 f f f f f f 2 e f . . . . . . . . . . . 
+. f f f f e e e e f f f f . . . . . . . . . . . 
+f f e f b f 4 4 f b f e f f . . . . . . . . . . 
+f e e 4 1 f d d f 1 4 e e f . . . . . . . . . . 
+. f f f f d d d d d e e f . . . . . . . . . . . 
+f d d d d f 4 4 4 e e f . . . . . . . . . . . . 
+f b b b b f 2 2 2 2 f 4 e . . . . . . . . . . . 
+f b b b b f 2 2 2 2 f d 4 . . . . . . . . . . . 
+. f c c f 4 5 5 4 4 f 4 4 . . . . . . . . . . . 
+. . f f f f f f f f . . . . . . . . . . . . . . 
+. . . . f f . . f f . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+`)
+    herodownattack.addAnimationFrame(img`
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . f f f f . . . . . . . . . . . . . . 
+. . . . f f f 2 2 f f f . . . . . . . . . . . . 
+. . . f f f 2 2 2 2 f f f . . . . . . . . . . . 
+. . f f f e e e e e e f f f . . . . . . . . . . 
+. . f f e 2 2 2 2 2 2 e e f . . . . . . . . . . 
+. . f e 2 f f f f f f 2 e f . . . . . . . . . . 
+. . f f f f e e e e f f f f . . . . . . . . . . 
+. f f e f b f 4 4 f b f e f f . . . . . . . . . 
+. f e e 4 1 f d d f 1 4 e e f . . . . . . . . . 
+f d f e e d d d d d 4 e f f . . . . . . . . . . 
+f b f f e e 4 4 4 e d d 4 e . . . . . . . . . . 
+f b f 4 f 2 2 2 2 e d d e . . . . . . . . . . . 
+f c f . f 2 2 c c c e e . . . . . . . . . . . . 
+. f f . f 4 4 c d c 4 f . . . . . . . . . . . . 
+. . . . f f f d d c f f . . . . . . . . . . . . 
+. . . . . f d d c f f . . . . . . . . . . . . . 
+. . . . c d d c . . . . . . . . . . . . . . . . 
+. . . . c d c . . . . . . . . . . . . . . . . . 
+. . . . c c . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+`)
+    herodownattack.addAnimationFrame(img`
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . f f . . . . . . . . . . . . . . . 
+. . . . . f f 2 2 f f . . . . . . . . . . . . . 
+. . . f f f 2 2 2 2 f f f . . . . . . . . . . . 
+. . f f f 2 2 2 2 2 2 f f f . . . . . . . . . . 
+. . f f f 2 2 2 2 2 2 f f f . . . . . . . . . . 
+. . f e e e e e e e e e e f f . . . . . . . . . 
+. f f e 2 2 2 2 2 2 2 2 e f f . . . . . . . . . 
+. f f f f f e e e e f f f f f . . . . . . . . . 
+f d f e f b f 4 4 f b f e f f . . . . . . . . . 
+f b f e 4 1 f d d f 1 4 e f . . . . . . . . . . 
+f b f f e 4 d d d d 4 e f e . . . . . . . . . . 
+f c f e f 2 2 2 2 2 f 4 e . . . . . . . . . . . 
+. f f 4 f 4 4 5 5 4 f 4 e . . . . . . . . . . . 
+. . . . f f f f f f d d e . . . . . . . . . . . 
+. . . . . f f f f e d d e . . . . . . . . . . . 
+. . . . . . . . . . e e . . . . . . . . . . . . 
+. . . . . . . . . c c c . . . . . . . . . . . . 
+. . . . . . . . c c 1 c c . . . . . . . . . . . 
+. . . . . . . . . c 1 c . . . . . . . . . . . . 
+. . . . . . . . . c 1 c . . . . . . . . . . . . 
+. . . . . . . . . c 1 c . . . . . . . . . . . . 
+. . . . . . . . . c 1 c . . . . . . . . . . . . 
+`)
+    herodownattack.addAnimationFrame(img`
+. . . . . . f f f f . . . . . . . . . . . . . . 
+. . . . f f f 2 2 f f f . . . . . . . . . . . . 
+. . . f f f 2 2 2 2 f f f . . . . . . . . . . . 
+. . f f f e e e e e e f f f . . . . . . . . . . 
+. . f f e 2 2 2 2 2 2 e e f . . . . . . . . . . 
+. . f e 2 f f f f f f 2 e f . . . . . . . . . . 
+. . f f f f e e e e f f f f . . . . . . c c c . 
+. f f e f b f 4 4 f b f e f f . . . . c d d c . 
+. f f e f b f 4 4 f b f e f f . . . c d d c . . 
+. f e e 4 d d d d d d 4 e e f . c c d d c . . . 
+f d f e e d d d d d 4 e e f f e c d d c . . . . 
+f b f f e e 4 4 4 4 e e 4 f d d c c c . . . . . 
+f b f 4 f 2 2 2 2 2 2 f 1 e d d e . . . . . . . 
+f c f . f 2 2 2 2 2 2 f 4 4 e e . . . . . . . . 
+. f f . f 4 4 5 5 4 4 f . . . . . . . . . . . . 
+. . . . f f f f f f f f . . . . . . . . . . . . 
+. . . . . f f . . f f . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . . . . . . . . . 
+`)
+    animation.attachAnimation(hero, herodownattack)
+}
+sprites.onOverlap(SpriteKind.Player, SpriteKind.person, function (sprite, otherSprite) {
+    if (playersick == 1) {
+        scene.cameraShake(4, 500)
+        personnum += -1
+        sicknum += 1
+        music.pewPew.play()
+        otherSprite.say("I'm sick.", 1000)
+        otherSprite.startEffect(effects.coolRadial)
+        otherSprite.setKind(SpriteKind.Plaguebearer)
+        display()
+    }
+})
+let herodownattack: animation.Animation = null
+let heroupattack: animation.Animation = null
+let herorightattack: animation.Animation = null
+let heroleftattack: animation.Animation = null
 let obstacle2: Sprite = null
 let desk: Sprite = null
 let bed: Sprite = null
-let pets: Sprite[] = []
+let pets: Image[] = []
 let xpet: Sprite = null
-let persons: Sprite[] = []
+let persons: Image[] = []
 let xper: Sprite = null
-let sicknum = 0
-let personnum = 0
+let herodown: animation.Animation = null
 let heroup: animation.Animation = null
 let heroright: animation.Animation = null
 let heroleft: animation.Animation = null
+let sicknum = 0
+let personnum = 0
 let site = 0
 let bat: Sprite = null
+let carry: Sprite = null
+let playersick = 0
+let direction = 0
+let hero: Sprite = null
 tiles.setTilemap(tiles.createTilemap(
             hex`20002000370338383838383838383838383838383838383838383838383838383838383837032019191919191920191919191920191919191919191920191919191919383703201919191919192019191919192019191919191919192019191919191938370320191919191919201919191919201919191919191919201919191919193837032020201e1e2020201e2020201e2020201e1e20202020201e24201919193837090505050605050505060505050a050505060605050505050508202020203837032020202020202020202020200320202020202020202020200320191919383703201919191919191919191920032019191919201919191920032019191938370320191919191919191919192003331919191920191919193303201919193837032019191919191919191919200933191919192019191919330820191919383703201919191919191919191920032019191919201919191920093219191938370320202020201e1e202020202003202020202020202020202009331919193837090505050505060605050505050c0505050505050505050505082019191938370314141414141414141414141403262626262626262626262603201919193837031417171717171717171717140329191919191919191919280320191919383703141717171717171717171714032919192c2c2c2c1919192809331919193837031417171717171717171717140329191919191919191919280932191919383703141717171212121217171714032919191919191919191928032019191938370314171717171717171717171403291919191919191919192803201919193837031414141414242414141414140327272727242b242727272703201919193837090505050505060605050505050c05050505060a060505050508201919193837032e2e2e2e2e2e2e2e2e2e2e2e03313131313124313131313103331919193837032e1a1a1a1a1a1a1a1a1a1a2e0331451a1a1a1a1a1a1a163109331919193837032e1a1a1a1a1a1a1a1a1a1a2e09321a1a1a1a15441a1a1a3303201919193837032e1a1a1a1a1a1a1a1a1a1a2e03331a1a1a1a43421a1a1a3308201919193837032e1a1a1a1a1a1a1a1a1a1a2e0331461a1a1a1a1a1a1a433103201919193837032e2e2e2e2e1e1e2e2e2e2e2e0331313131311e3131313131032020202038050605050a0a0a06060a050a0a0a060a0a0a0a0a060a050a0a0a060a0a05050538393a3a3a3a3a3a3a3a3a3a3a01013a3a3a3a3a3a3a3a3a01013a3a3a3a3e38383b010101010140404040010101010101010101010101010101010101013f38383c3d3d3d3d3d3d3d3d3d3d3d3d3d0101013d3d3d3d3d3d3d0101013d3d3d383838383838383838383838383838383838383838383838383838383838383838`,
             img`
@@ -843,10 +1441,6 @@ tiles.setTilemap(tiles.createTilemap(
             [myTiles.tile0,sprites.castle.tileGrass2,sprites.builtin.field0,sprites.vehicle.roadVertical,sprites.vehicle.roadTurn3,sprites.vehicle.roadHorizontal,sprites.vehicle.roadIntersection1,sprites.vehicle.roadTurn2,sprites.vehicle.roadIntersection4,sprites.vehicle.roadIntersection2,sprites.vehicle.roadIntersection3,sprites.dungeon.hazardSpike,sprites.dungeon.buttonTealDepressed,sprites.builtin.field1,sprites.castle.shrub,sprites.castle.rock1,sprites.castle.rock0,sprites.castle.rock2,sprites.castle.saplingPine,sprites.builtin.crowd0,sprites.builtin.brick,sprites.dungeon.doorLockedWest,sprites.dungeon.doorOpenWest,myTiles.tile1,myTiles.tile2,myTiles.tile3,myTiles.tile4,myTiles.tile5,sprites.dungeon.floorDark0,sprites.dungeon.floorLight4,sprites.dungeon.stairNorth,sprites.dungeon.purpleOuterWest2,sprites.dungeon.floorLight0,sprites.dungeon.chestClosed,sprites.dungeon.collectibleInsignia,sprites.builtin.forestTiles21,sprites.dungeon.stairSouth,sprites.castle.saplingOak,sprites.dungeon.greenOuterNorth2,sprites.dungeon.greenOuterSouth2,sprites.dungeon.greenOuterEast2,sprites.dungeon.greenOuterWest2,sprites.dungeon.stairLadder,sprites.dungeon.purpleOuterNorth2,sprites.castle.tileDarkGrass2,sprites.builtin.forestTiles0,sprites.dungeon.floorDarkDiamond,sprites.dungeon.floorLight3,sprites.dungeon.floorLightMoss,sprites.dungeon.floorLight5,sprites.dungeon.stairEast,sprites.dungeon.stairWest,sprites.dungeon.stairLarge,sprites.builtin.forestTiles22,sprites.builtin.forestTiles3,sprites.builtin.forestTiles20,sprites.builtin.forestTiles4,sprites.castle.tilePath1,sprites.castle.tilePath2,sprites.castle.tilePath4,sprites.castle.tilePath7,sprites.castle.tilePath8,sprites.castle.tilePath3,sprites.castle.tilePath6,sprites.castle.tilePath5,sprites.builtin.crowd2,sprites.dungeon.doorClosedEast,sprites.dungeon.doorClosedWest,sprites.dungeon.doorLockedEast,sprites.dungeon.doorClosedSouth,sprites.dungeon.doorOpenNorth],
             TileScale.Sixteen
         ))
-initperson()
-initlocation()
-initequipment()
-creatvirus()
 let nurse2 = sprites.create(img`
 . . 1 1 1 1 1 2 1 1 1 1 . . . . 
 . . 1 1 1 1 2 2 2 1 1 1 1 . . . 
@@ -885,7 +1479,7 @@ f b b f f f e e e e f f f b b f
 . . . . . f f b b f f . . . . . 
 `, SpriteKind.nurse)
 tiles.placeOnTile(nurse2, tiles.getTileLocation(5, 14))
-let hero = sprites.create(img`
+hero = sprites.create(img`
 . . . . . . f f f f . . . . . . 
 . . . . f f f 2 2 f f f . . . . 
 . . . f f f 2 2 2 2 f f f . . . 
@@ -905,7 +1499,47 @@ let hero = sprites.create(img`
 `, SpriteKind.Player)
 controller.moveSprite(hero)
 scene.cameraFollowSprite(hero)
+game.splash("新冠状病毒")
+initperson()
+initlocation()
+initequipment()
+creatvirus()
+initattention()
+initAnimate()
+initAnimateAttack()
+info.setLife(3)
 display()
+direction = 0
+playersick = 0
+carry = sprites.create(img`
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+`, SpriteKind.Player)
+game.onUpdate(function () {
+    if (direction == 1) {
+        carry.setPosition(hero.x + -18, hero.y + 0)
+    } else if (direction == 2) {
+        carry.setPosition(hero.x + 18, hero.y + 0)
+    } else if (direction == 3) {
+        carry.setPosition(hero.x + 0, hero.y + -18)
+    } else if (direction == 4) {
+        carry.setPosition(hero.x + 0, hero.y + 18)
+    }
+})
 game.onUpdateInterval(20000, function () {
     creatvirus()
 })
